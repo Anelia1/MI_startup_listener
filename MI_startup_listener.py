@@ -23,7 +23,7 @@ class MIStartupListener:
         self.recogniser = vosk.KaldiRecognizer(self.model, self.samplerate) # Recogniser (Kaldi function which does the actual speech-to-text conversion)
         self.current_phrase = "" # Current transcribed text 
         self.running = False
-        self.trigger_word = "start"
+        self.trigger_phrase = "start application now"
 
 
     def start(self):
@@ -48,14 +48,26 @@ class MIStartupListener:
         for key, value in json_data.items(): 
             if key in ('partial', 'text'):
                 self.current_phrase = value
-# TODO: does not work
+
         if self.current_phrase != "":
            
-            #for word in self.current_phrase:
-            if self.trigger_word in self.current_phrase:
-# TODO
-                self.stop()
+            # Only if the speaker has said the trigger phrase
+            if self.trigger_phrase == self.current_phrase:
+
+# TODO: MI should not allow the app to be open more than once
+# TODO: Check if MI is open, track the app 
+# TODO: Ensure cross platform persistance - deamon threads?
+# TODO: Custom installer to setup in Starter folder
+# TODO: It should never ever close -> listen!
+
+                #self.stop() # breaks the loop
                 self.open_MI_app()
+                # TODO: 
+                #while MI_app is open:
+                #    wait()
+                print("startup listener is closed!")
+
+                #self.start() # starts the loop
 
         print("vosk:", self.current_phrase)
 

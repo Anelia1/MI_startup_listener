@@ -4,6 +4,7 @@ import vosk
 vosk.SetLogLevel(-1)
 import os, sys, subprocess, json
 import wmi # used to check if MI app is open 
+import psutil
 
 """ 
 To test this app, place MI_app.exe in C:/ location or change the location
@@ -17,14 +18,15 @@ TODO: replace methods in KITA that do not use self with @staticmethod
 """
 
 #### --------------------------------------------------------------------
-# TODO: REPLACE model HACK with communicating threads (maybe condition object)
-# TODO: Ensure PERSISTENCE - deamon threads?
 # TODO: Cross platform - account for MAC and maybe Linux
+# TODO: Ensure PERSISTENCE - deamon threads? - run as a service?
 
 # TODO: Compile with Nuitka and setup with Installer to add this app to os Startup folder
 # TODO: Use Installer (there are free open source ones) to add this app to os Startup folder
 # TODO: Make sure the Installer adds this app to os Startup folder (or Mac/Linux equivalent)
 # TODO: It should never ever close
+# TODO: Look into MI_app name and path
+# # TODO: REPLACE model HACK with communicating threads (maybe condition object)
 #### --------------------------------------------------------------------
 
 VOSK_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "model", "vosk_english"))
@@ -73,25 +75,42 @@ class MIStartupListener:
                 self.stop() # breaks the loop
 
                 # Stops listening when MI app is open
+                # These are unnecessary while MI app is running
+                # TODO: Review whether this is good practice? Maybe there is a more canonical way to achive this
                 self.model = None # clear out vosk model
-                self.recogniser = None # clear out vosk recogniser  
+                self.recogniser = None # clear out vosk recogniser
                 
                 print("Startup Listener is closed")
                 # Runs MI app
-                self.open_MI_app() 
+                self.open_MI_app() #Note, this command only STARTS the trigeering of the app, it may take a few seconds for app to start fully. 
+                # 
                 print("MI app triggered")
 
-                wmi_tasks = wmi.WMI()
+                wmi_tasks = wmi.WMI() # This only works for windows
                 
-# TODO: pass??
-                # If MI app opened
+                # TODO: Delete this
+                # By the time it gets to the second while loop it does not recognise that
+                # MI app is open, because it is in a process of opening but doesn't show up yet
+                # So then new speech is generated
+                # Which leads to opening the app multiple times if the phrase is said
+
+
+                # Even though MI_app has been triggered, it may not yet
+                # show in the process list in Windows (or be accesible from WMI)
+                # So we now wait until it IS visible in the process list.
+                # (if you don't wait and do this, then the listener app might think MI_app
+                # has ALREADY been closed and start up its listening for the trigger word again!
+
+                # This is used because of a delay in Windows Task Processes to show that the app has opened 
+                # and/or accounting for a delay of the MI app opening
                 while True not in ("MI_app" in p_str for p_str in (str(p) for p in wmi_tasks.Win32_Process())):
-                    pass
-                print("MI_app registered in psutil")
+                    pass # wait until MI app opens
+                print("MI app app opened")
   
+                # Wait until MI_app.exe is in the process list
                 # If MI app NOT opened
                 while True in ("MI_app" in p_str for p_str in (str(p) for p in wmi_tasks.Win32_Process())):
-                    pass 
+                    pass  # wait until MI app sloses
  
                 print("MI app closed")
 
@@ -103,6 +122,7 @@ class MIStartupListener:
                 self.start() 
                 print("Startup Listener started again")
         #print("vosk:", self.current_phrase)
+
 
     def _callback(self, indata, frames: int, time, status) -> None:
         """

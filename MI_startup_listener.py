@@ -7,7 +7,13 @@ vosk.SetLogLevel(-1)
 import os
 import sys
 import json
+import wmi # used to check if MI app is open 
 
+""" 
+To test this app, place MI_app.exe in C:/ location or change the location
+"""
+
+# TODO: compile and setup with Installer to add this app to os Startup folder
 
 VOSK_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "model", "vosk_english"))
 
@@ -22,28 +28,29 @@ class MIStartupListener:
         self.model = vosk.Model(VOSK_PATH) # Speech recognition model
         self.recogniser = vosk.KaldiRecognizer(self.model, self.samplerate) # Recogniser (Kaldi function which does the actual speech-to-text conversion)
         self.current_phrase = "" # Current transcribed text 
-        self.running = False
-        self.trigger_phrase = "start application now"
-
+        self._running = False
+        #self.trigger_phrase = "start application now"
+        self.trigger_phrase = "start"
 
     def start(self):
-        self.running = True
+        self._running = True
         with sd.RawInputStream(samplerate=self.samplerate, blocksize=8000,\
             device=None, dtype='int16', channels=1, callback=self._callback): 
 
             # The Loop
-            while self.running:
+            while self._running:
                 self._vosk_action()
 
 
     def _vosk_action(self):
+
         try:
             json_data = self._get_current_phrase_dict() 
         except Exception as e:
             print("Exception", e)
 
         # json_data = {'partial': ''}
-        print("json_data.items()", json_data)
+        #print("json_data.items()", json_data)
 
         for key, value in json_data.items(): 
             if key in ('partial', 'text'):
@@ -52,7 +59,7 @@ class MIStartupListener:
         if self.current_phrase != "":
            
             # Only if the speaker has said the trigger phrase
-            if self.trigger_phrase == self.current_phrase:
+            if self.trigger_phrase in self.current_phrase:
 
 # TODO: MI should not allow the app to be open more than once
 # TODO: Check if MI is open, track the app 
@@ -60,16 +67,35 @@ class MIStartupListener:
 # TODO: Custom installer to setup in Starter folder
 # TODO: It should never ever close -> listen!
 
-                #self.stop() # breaks the loop
-                self.open_MI_app()
-                # TODO: 
-                #while MI_app is open:
-                #    wait()
-                print("startup listener is closed!")
+                self.stop() # breaks the loop
+                # stops listening when MI app is open
+                self.model = None # clear out vosk model
+                self.recogniser = None # clear out vosk recogniser     
+                print("Startup Listener is closed")
+                self.open_MI_app() # runs MI app
+                print("MI app triggered")
 
-                #self.start() # starts the loop
+                while True not in ("MI_app" in p_str for p_str in (str(p) for p in f.Win32_Process())):
+                    pass
+                print("MI_app registered in psutil")
+  
 
-        print("vosk:", self.current_phrase)
+
+# TODO: Test
+                #if "MI_app" in (p.name() for p in psutil.process_iter()): # while MI app is _running
+                while True in ("MI_app" in p_str for p_str in (str(p) for p in f.Win32_Process())):
+                    pass # do nothing
+ 
+
+                print("MI app closed")
+                # begins listening again when MI app is closed
+                self.model = vosk.Model(VOSK_PATH) # restore vosk model
+                self.recogniser = vosk.KaldiRecognizer(self.model, self.samplerate) # restore vosk recogniser
+        
+                self.start() # starts the loop again
+                print("Startup Listener startED again")
+
+        #print("vosk:", self.current_phrase)
 
     def _callback(self, indata, frames: int, time, status) -> None:
         """
@@ -84,7 +110,11 @@ class MIStartupListener:
 
     def _get_current_phrase_dict(self):
         json_data = {}
+
         audio = self.q.get()
+        if not self._running:
+            audio = b'\x00'
+
         if self.recogniser.AcceptWaveform(audio): # processes the wav (user speech) audio data; convert to text
             json_data = json.loads(self.recogniser.Result()) # Vosk returns a json object by default {"Text", "user speech goes here"} # FinalResult?
         else:
@@ -92,7 +122,7 @@ class MIStartupListener:
         return json_data
 
     def stop(self):
-        self.running = False
+        self._running = False
 
     @staticmethod
     def open_MI_app():

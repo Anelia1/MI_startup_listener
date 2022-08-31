@@ -3,8 +3,8 @@ import sounddevice as sd
 import vosk
 vosk.SetLogLevel(-1)
 import os, sys, subprocess, json
-import wmi # used to check if MI app is open 
 import psutil
+import threading
 
 """ 
 To test this app, place MI_app.exe in C:/ location or change the location
@@ -18,7 +18,7 @@ TODO: replace methods in KITA that do not use self with @staticmethod
 """
 
 #### --------------------------------------------------------------------
-# TODO: Cross platform - account for MAC and maybe Linux
+# DONE: Cross platform 
 # TODO: Ensure PERSISTENCE - deamon threads? - run as a service?
 
 # TODO: Compile with Nuitka and setup with Installer to add this app to os Startup folder
@@ -26,39 +26,87 @@ TODO: replace methods in KITA that do not use self with @staticmethod
 # TODO: Make sure the Installer adds this app to os Startup folder (or Mac/Linux equivalent)
 # TODO: It should never ever close
 # TODO: Look into MI_app name and path
-# # TODO: REPLACE model HACK with communicating threads (maybe condition object)
+# TODO: REPLACE model HACK with communicating threads (maybe condition object)
 #### --------------------------------------------------------------------
 
 VOSK_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "model", "vosk_english"))
+lock = threading.RLock()
+lock2 = threading.Lock()
 
-class MIStartupListener:
-    
-    def __init__(self):
-        self._queue = queue.Queue()
-        device_info = sd.query_devices(kind='input') # All available devices
-        self.samplerate = int(device_info['default_samplerate']) # Selected device info
-        self.model = vosk.Model(VOSK_PATH) # Speech recognition model
-        self.recogniser = vosk.KaldiRecognizer(self.model, self.samplerate) # Recogniser (Kaldi function which does the actual speech-to-text conversion)
-        self.current_phrase = "" # Current transcribed text 
-        self._running = False
-        #self.trigger_phrase = "start application now" 
-        self.trigger_phrase = "start" # used for testing
 
-    def start(self):
-        self._running = True
+class MIStartupListener(threading.Thread):
+    _instance = None
+    _is_running = False
+    _pause_listener = False
+
+    def __new__(cls):
+        with lock:
+            if cls._instance is None and not cls._is_running:
+                # General
+                cls._instance = super(MIStartupListener, cls).__new__(cls)
+                #cls.daemon = True # inherited property
+                cls._condition_object = threading.Condition()
+                cls._flag = False
+                cls._queue = queue.Queue()
+                # Speech recognition
+                device_info = sd.query_devices(kind='input') # All available devices
+                cls.samplerate = int(device_info['default_samplerate']) # Selected device info
+                cls.model = vosk.Model(VOSK_PATH) # Speech recognition model
+                cls.recogniser = vosk.KaldiRecognizer(cls.model, cls.samplerate) # Recogniser (Kaldi function which does the actual speech-to-text conversion)
+                cls.current_phrase = "" # Current transcribed text 
+                #cls.trigger_phrase = "start application now" 
+                cls.trigger_phrase = "start" # used for testing
+
+                cls._waiting = threading.Thread(target=cls._waiting)
+                cls._waiting.start()
+                cls._waiting.join()
+            return cls._instance
+
+
+    def run(self):
+        """
+        START Listener
+        """
+        with lock:
+            MIStartupListener._is_running = True
 
         with sd.RawInputStream(samplerate=self.samplerate, blocksize=8000,\
             device=None, dtype='int16', channels=1, callback=self._callback): 
 
             # The Loop
-            while self._running:
-                self._vosk_action()
+            while MIStartupListener._is_running:
+                self._listening_action()
 
 
-    def _vosk_action(self):
+
+
+
+
+
+    def _waiting(self):
+        with lock2:
+            with self._condition_object:
+                if not self._flag:
+                    self._condition_object.wait()
+                while "mi_app" not in ' '.join([str(p).lower() for p in psutil.process_iter()]):
+                    pass # wait until MI app opens
+                print("MI app app opened")
+                self._wait_MI_closed()
+
+
+    def _wait_MI_closed(self):
+        while "mi_app" in ' '.join([str(p).lower() for p in psutil.process_iter()]):
+            pass  # wait until MI app closes
+        print("MI app closed")
+        self._condition_object
+
+
+    def _listening_action(self):
         """
         Ran consistently during the app is open
         """
+
+
         try:
             json_data = self._get_current_phrase_dict() 
         except Exception as e:
@@ -72,57 +120,22 @@ class MIStartupListener:
         if self.current_phrase != "":
             # If the speaker has said the trigger phrase
             if self.trigger_phrase in self.current_phrase:
-                self.stop() # breaks the loop
 
-                # Stops listening when MI app is open
-                # These are unnecessary while MI app is running
-                # TODO: Review whether this is good practice? Maybe there is a more canonical way to achive this
-                self.model = None # clear out vosk model
-                self.recogniser = None # clear out vosk recogniser
-                
+                MIStartupListener._pause_listener = True
+
                 print("Startup Listener is closed")
                 # Runs MI app
-                self.open_MI_app() #Note, this command only STARTS the trigeering of the app, it may take a few seconds for app to start fully. 
-                # 
+                self.open_MI_app() #Note, this command only STARTS the trigeering of the app, 
+                # it may take a few seconds for app to start fully. 
                 print("MI app triggered")
 
-                wmi_tasks = wmi.WMI() # This only works for windows
-                
-                # TODO: Delete this
-                # By the time it gets to the second while loop it does not recognise that
-                # MI app is open, because it is in a process of opening but doesn't show up yet
-                # So then new speech is generated
-                # Which leads to opening the app multiple times if the phrase is said
+                self._condition_object.notify()
 
+                # Starts the listener again
+                MIStartupListener._pause_listener = False
+                print("Listener started again")
 
-                # Even though MI_app has been triggered, it may not yet
-                # show in the process list in Windows (or be accesible from WMI)
-                # So we now wait until it IS visible in the process list.
-                # (if you don't wait and do this, then the listener app might think MI_app
-                # has ALREADY been closed and start up its listening for the trigger word again!
-
-                # This is used because of a delay in Windows Task Processes to show that the app has opened 
-                # and/or accounting for a delay of the MI app opening
-                while True not in ("MI_app" in p_str for p_str in (str(p) for p in wmi_tasks.Win32_Process())):
-                    pass # wait until MI app opens
-                print("MI app app opened")
-  
-                # Wait until MI_app.exe is in the process list
-                # If MI app NOT opened
-                while True in ("MI_app" in p_str for p_str in (str(p) for p in wmi_tasks.Win32_Process())):
-                    pass  # wait until MI app sloses
- 
-                print("MI app closed")
-
-                # Begins listening again when MI app is closed
-                self.model = vosk.Model(VOSK_PATH) # restore vosk model
-                self.recogniser = vosk.KaldiRecognizer(self.model, self.samplerate) # restore vosk recogniser
-                
-                # Starts the loop again
-                self.start() 
-                print("Startup Listener started again")
         #print("vosk:", self.current_phrase)
-
 
     def _callback(self, indata, frames: int, time, status) -> None:
         """
@@ -134,7 +147,6 @@ class MIStartupListener:
             sys.stdout.flush()
         self._queue.put(bytes(indata))
 
-
     def _get_current_phrase_dict(self):
         """
         Get current phrase from vosk
@@ -142,8 +154,9 @@ class MIStartupListener:
         json_data = {}
 
         audio = self._queue.get()
-        # Pause while MI app is open
-        if not self._running:
+        # Pause if MI app is open
+
+        if MIStartupListener._pause_listener:
             audio = b'\x00'
         # Processes the wav (user speech) audio data; convert to text
         if self.recogniser.AcceptWaveform(audio): 
@@ -155,12 +168,6 @@ class MIStartupListener:
             json_data = json.loads(self.recogniser.PartialResult())
         return json_data
 
-    def stop(self):
-        """
-        STOP == PAUSE
-        """
-        self._running = False
-
     @staticmethod
     def open_MI_app():
         """
@@ -170,12 +177,22 @@ class MIStartupListener:
         cmdline = "MI_app.exe"
         subprocess.call("start cmd /C " + cmdline, cwd=directory, shell=True)
 
+    def get_is_running(self):
+        """
+        Returns whether KITA is ON or OFF
+        """
+        with lock:
+            return MIStartupListener._is_running
 
-"""
-Instantiate class object
-"""
-m = MIStartupListener()
-m.start()
-input("Waiting...")
+    def end(self):
+        """
+        STOP 
+        """
+        with lock:
+            MIStartupListener._is_running = False
+
+
+#listener_app = MIStartupListener()
+#listener_app.start()
 
 

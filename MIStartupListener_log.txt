@@ -1,0 +1,64 @@
+17:31:12,654 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> model created
+17:31:12,756 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> recogniser started
+17:31:12,756 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> Object Created
+17:31:12,758 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> Listening...
+17:31:16,250 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: it came
+17:31:16,433 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so
+17:31:16,591 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so
+17:31:16,765 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so
+17:31:16,969 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so now
+17:31:17,138 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so no i
+17:31:17,330 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so no i
+17:31:17,507 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so now i can
+17:31:17,665 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so now i can
+17:31:17,865 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so now i can
+17:31:18,39 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so now i can
+17:31:18,220 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: okay so no i can
+17:31:19,326 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there
+17:31:19,526 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was
+17:31:19,681 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one
+17:31:19,844 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one
+17:31:20,42 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the
+17:31:20,219 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last
+17:31:20,411 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time i
+17:31:20,575 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time i
+17:31:20,777 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and not
+17:31:21,34 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are
+17:31:21,136 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are
+17:31:21,294 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are
+17:31:21,487 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed it
+17:31:21,663 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed it
+17:31:21,882 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a
+17:31:22,25 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a
+17:31:22,281 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when he
+17:31:22,408 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed it when i open it
+17:31:22,576 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed it when i open it
+17:31:22,744 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed it when i open it
+17:31:22,947 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener at an
+17:31:23,129 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener i don't know why
+17:31:23,361 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener i don't know as soon
+17:31:23,474 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener i don't know as soon
+17:31:23,717 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener i don't know i've seen
+17:31:23,854 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener i don't know why sooner
+17:31:24,19 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener i don't know why sooner
+17:31:24,195 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener i don't know why sooner
+17:31:24,389 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed that when a opener i don't know why sooner
+17:31:24,573 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: at there was one from the last time and are removed it when a opener i don't know why sooner
+17:31:25,130 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah
+17:31:25,293 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you
+17:31:25,493 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you
+17:31:25,752 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you
+17:31:25,835 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you
+17:31:26,53 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you read
+17:31:26,230 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you would like
+17:31:26,390 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be
+17:31:26,555 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be
+17:31:26,765 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be
+17:31:26,990 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be saying can you
+17:31:27,157 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be saying can you do
+17:31:27,284 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be saying can you do
+17:31:27,488 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be saying can you do me a
+17:31:27,668 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be saying can you do me a favor
+17:31:27,834 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be saying can you do me a favor
+17:31:28,4 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be saying can you do me a favor
+17:31:28,206 <C:\Users\aneli\source\repos\MI_startup_listener\MI_startup_listener.py> heard: yeah you is what it might be saying can you do me a favor

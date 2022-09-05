@@ -1,88 +1,77 @@
-import queue
+"""
+Author: Anelia Gaydardzhieva
+Comments: A separate thread 
+to show/change/hide Windows system tray icon
+"""
 import threading
 import logging
 from pystray import MenuItem as item
 import pystray # cross-platform
-from PIL import Image, ImageTk
-import time
+from PIL import Image
 
+# Inserts app name in front of log
 def name_logging(log):
     my_filename = __file__.split("/")[-1]
     logging.info(f"<{my_filename}> {log}")
 
-lock = threading.Lock()
-
-class StrayIconManager(threading.Thread):
+class StrayIconManager(threading.Thread): # Maybe remove, or not
     running = False
-    _current_icon = ""
-    _icon_name = ""
-    icon_flag = False
-    icon = None
-    # _instance # __new__(cls)
-    # ? Explain thread extention
-    # Remove class variables
+# TODO: Explain thread extention
 
     def __init__(self):
         super(StrayIconManager, self).__init__()
+        self.running = False
         self._event = threading.Event()
-        #self.trigger_event()
-
+        self.icon = None
+        self.icon_name = ""
+        self.current_icon = ""
+        self.icon_flag = False # Red Icon
 
     def run(self):
-        StrayIconManager.running = True
-        
-        
-        StrayIconManager._current_icon = "red.ico"
-        
-        while StrayIconManager.running:
-            #time.sleep(5)
-            #while not self._event.is_set:
+        """
+        Main loop for displaying the icon
+        """
+        self.running = True
+        while self.running:
             if not self._event.is_set:
                 self._event.wait()
             self._icon_action()
-            #StrayIconManager.icon.stop()
-
 
     def _icon_action(self):
-        
-        if not StrayIconManager.icon_flag:
-            StrayIconManager._current_icon = "red.ico"
-            StrayIconManager._icon_name = "MotionInput OFF"
-            print("Red icon")
-        elif StrayIconManager.icon_flag:
-            StrayIconManager._current_icon = "green.ico"
-            StrayIconManager._icon_name = "MotionInput ON"
-            print("Green icon")
-
-
-        image=Image.open(StrayIconManager._current_icon)
-        icon_stop=(item('Quit', self.hide_icon),)
-        StrayIconManager.icon=pystray.Icon("name", image, StrayIconManager._icon_name, icon_stop)
-        print("Setting up Icon")
-        StrayIconManager.icon.run()
-        print("Stopping Icon")
+        if not self.icon_flag:
+            self.current_icon = "red.ico"
+            self.icon_name = "MotionInput OFF"
+            print("Red Icon")
+        elif self.icon_flag:
+            self.current_icon = "green.ico"
+            self.icon_name = "MotionInput ON"
+            print("Green Icon")
+        image = Image.open(self.current_icon)
+        icon_stop = (item('Quit', self.stop_icon),)
+        self.icon = pystray.Icon("name", image, self.icon_name, icon_stop)
+        self.icon.run()
             
-    @staticmethod
-    def hide_icon():
-        StrayIconManager.icon.stop()
+    def stop_icon(self):
+        self.icon.stop()
 
-    def trigger_event(self):
-        if not self._event.is_set:
-            self._event.set()
-        #StrayIconManager.running = False
+    def green_icon_set(self):
+        """
+        Trigger Icon change to Green
+        """
+        # TODO: Use for optimisation
+        # self.icon.update_menu()
 
-    def reset(self):
-        #StrayIconManager.running = False
-        self.hide_icon()
-        #if not self._event.is_set:
-        if not self._event.is_set:
-            self._event.clear()
-            self.trigger_event()
+        self.stop_icon()
+        self.icon_flag = True
+        self._event.set()
 
+    def red_icon_set(self):
+        """
+        Trigger Icon change to Red
+        """
+        self.stop_icon()
+        self.icon_flag = False
+        self._event.clear()
 
     def is_running(self):
-        return self._event.is_set()
-
-#sil = StrayIconManager()
-#sil.start()
-#sil.join()
+        return self.running

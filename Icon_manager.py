@@ -3,18 +3,18 @@ Author: Anelia Gaydardzhieva
 Comments: A separate thread to 
 show/change/hide Windows system tray icon.
 
-It keep an icon in Windows system tray, 
-which shows red when MI app is closed 
+It keeps an icon in Windows system tray, 
+which switches between red when MI app is closed 
 and green when MI app is running.
+Hovering over the icon show text 'UCL MotionInput - ON/OFF'
 # Note: Clicking on the icon has no effect at the moment
 and this can be implemented to do great things in the future :)
 
 Note: pystray's Icon is required and it is a Thread
 as well as this class is. Icon's stop() method however can ONLY
 be called from MainThread!
-
-# TODO: The Icon refresh/update happens only when the systemtray
-is opened, which is an unpleasant inconvenience that requires fixing!
+stop() enables the app to distroy an icon object and
+create a new one afterwards with a different colour. 
 '''
 from pystray import MenuItem as item
 import pystray # cross-platform
@@ -36,7 +36,6 @@ class IconManager(Thread):
         Thread.__init__(self)
         self.name = "Icon Manager Thread"
         self.daemon = True
-        self._instance = None
         self._is_running = False
         self.icon = None
         self.icon_name = ""
@@ -51,6 +50,7 @@ class IconManager(Thread):
         self._is_running = True
         while self.is_running:
             self._icon_action()
+        self._stop()
 
     def _icon_action(self):
         try:
@@ -58,17 +58,18 @@ class IconManager(Thread):
                 self.current_icon = RED_ICON
                 self.icon_name = TRAY_ICON_NAME + " - OFF"
                 print("Red Icon")
-            elif self.icon_flag:
+            else:
                 self.current_icon = GREEN_ICON
                 self.icon_name = TRAY_ICON_NAME + " - ON"
                 print("Green Icon")
+            # setup system tray icon
             image = Image.open(self.current_icon)
             icon_stop = (item('Quit', self.stop_icon),)
             self.icon = pystray.Icon("name", image, self.icon_name, icon_stop)
-            self.icon.run()
+            self.icon.run() # start icon thread
         except Exception as e:
             print(e)
-            self._stop()
+            
             
     def stop_icon(self):
         try:

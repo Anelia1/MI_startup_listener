@@ -1,5 +1,8 @@
 import datetime
 import psutil
+from prettytable import PrettyTable
+
+########################## Static and accurate methods to make use of ###############################
 
 
 ls = ['pid', 'username', 'num_threads', 'threads', 'name', 'status']
@@ -57,3 +60,60 @@ def time_created():
     #            MI_instances.append(p)
     #    print(MI_instances)
     #    return MI_instances
+
+
+
+
+
+
+
+
+
+
+def system_info_table():
+    """
+    Method for visual display of system information
+    Not actively used at the moment but has great potential
+    (if we do not require fast outputs because psutil is much slower)
+    """
+    process_table = PrettyTable(['PID', 'PNAME', 'STATUS', 'NUM_THREADS', 'MEMORY(MB)'])
+    try:
+        for p in psutil.process_iter():
+            # oneshot is very fast
+            with p.oneshot():
+                process_table.add_row([
+                    str(p.pid),
+                    p.name(),
+                    p.status(),
+                    p.num_threads(),
+                    f'{p.memory_info().rss / 1e6:.3f}'
+                    ])
+                print(process_table)
+    except Exception as e:
+        print(e)
+
+
+
+def time_MI_process_created():
+    """
+    Formatted date and time for MI exe trigger
+    Not actively used at the moment (added to todo list:)
+    """
+    p = psutil.Process
+    for p in psutil.process_iter():
+        if "MI_app" in p.info['name']:
+            p_time = p.create_time()
+            formatted_time = datetime.datetime.fromtimetostamp(p_time).strftime("%Y-%m-%d %H:%M:%S")
+            print("MI executed on: ", formatted_time)
+
+
+
+def _active_processes_names() -> list:
+    """
+    Return a list of the names of running processes 
+    on Windows
+    """
+    return [p.info['name'] for p in psutil.process_iter(['pid', 'name', 'status'])]
+
+
+########################################################################################

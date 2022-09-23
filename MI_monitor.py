@@ -32,10 +32,13 @@ def check_paths(*paths):
         if not os.path.exists(path):
             raise FileNotFoundError(f"[MI_Monitor] Path {path} was not found")
 
+VOSK_MODEL_NAME = "vosk_english"
+VOSK_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "model", VOSK_MODEL_NAME))
 
-MI_APP_NAME = "MI_app" # app name
+
+MI_APP_NAME = "MI3-FacialNavigation-3.04" # app name
 MI_EXE = MI_APP_NAME + ".exe" # executable name
-MI_FOLDER = "MI_app" # folder name of executable
+MI_FOLDER = "UCL MI3 Facial Navigation" # folder name of executable
 
 # By default we are assuming MI and MIMonitor are in the same directory since they will be installed 
 # via the same installer software with default locations (if the user hasn't changed it).
@@ -46,19 +49,18 @@ MI_FOLDER = "MI_app" # folder name of executable
 # the app will be used. Currently MIMonitor assumes that there will be only one MI app running on 
 # the machine and closes all instances of it if more than one.
 
-MI_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", MI_FOLDER)) 
+MI_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", MI_FOLDER)) # expected path
 MI_EXE_PATH = os.path.join(MI_FOLDER_PATH, MI_EXE)
 
-VOSK_MODEL_NAME = "vosk_english"
-VOSK_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "model", VOSK_MODEL_NAME))
-
 check_paths(VOSK_PATH, MI_FOLDER_PATH, MI_EXE_PATH)
+
+
 
 
 ACCEPTABLE_START_PHRASES = ['start hand', 'start face', 'start motion'] # easier to adjust from here
 ACCEPTABLE_STOP_PHRASES = ['stop hand', 'stop face', 'stop motion']
 
-LIST_MI_NAME_STARTS_WITH = ['UCL', 'MI'] # likely MI3
+LIST_MI_NAME_STARTS_WITH = ['UCL-MI3', 'MI3']
 
 
 lock = Lock()

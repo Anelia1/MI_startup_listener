@@ -33,7 +33,7 @@ class IconManager(Thread):
     """ System Tray Icons Manager """
 
     def __init__(self):
-        Thread.__init__(self)
+        super().__init__()
         self.name = "Icon Manager Thread"
         self.daemon = True
         self._is_running = False

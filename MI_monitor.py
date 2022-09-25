@@ -343,41 +343,29 @@ class MIMonitor:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
     try:
         # MIM
-        m = MIMonitor()
+        m = MIMonitor
         m.start()
-        print("MI Monitor started")
-        print("Say 'start motion' to run MI or 'close motion' to close MI")
+        print("MI Monitor Started")
+        print("Say 'start motion/hand/hands/face' to run MI \nor 'close motion/hand/hands/face' to close MI")
         while m.get_state():
             pass
-    except Exception:
+    except Exception as e:
         try:
             m._stop()
-            #os.startfile('quitMIapp.bat') # Ensures the MI is completely closed
-        except Exception:
+            print(f"Stopped with Exception: {e}")
+        except Exception as ex:
+            print(f"Failed to stop with _stop() Exception: {ex}")
             raise
         raise
-
+    # Error Stop: Not Emergency
+    except SystemExit as se:
+        print("SystemExit: ", se)
+        if se.code != 255:
+            raise
+    # Error Stop: Emergency
+    else:
+        print("Emergency Exit")
+        os._exit(255)

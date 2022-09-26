@@ -231,7 +231,7 @@ class MIMonitor:
 
 
     @classmethod
-    def is_running(cls) -> bool:
+    def is_active(cls) -> bool:
         return cls._is_running
 
 
@@ -349,7 +349,7 @@ if __name__ == '__main__':
         m = MIMonitor
         m.start()
         print("MI Monitor Started")
-        print("Say 'start motion/hand/hands/face' to run MI \nor 'close motion/hand/hands/face' to close MI")
+        
         while m.get_state():
             pass
     except Exception as e:
@@ -369,3 +369,33 @@ if __name__ == '__main__':
     else:
         print("Emergency Exit")
         os._exit(255)
+
+
+if __name__ == "__main__":
+    try:
+        # Start MI
+        m = MIMonitor
+        m.start()
+        print("[[[MIM Started]]]")
+        print("Say 'start motion/hand/hands/face' to run MI \nor 'close motion/hand/hands/face' to close MI")
+        while m.is_active():
+                m.run()
+        # Stop MIkop
+        print("[[[MIM Stopped]]]")
+    except Exception as e:
+        try:
+            m._stop()
+            print(f"[MIM Stopped with _stop() because of Exception: {e}]")
+        except Exception as ex:
+            print(f"[MIM failed to stop with _stop() because of Exception: {ex}]")
+            raise
+        raise
+    # Error
+    except SystemExit as se:
+        print(f"SystemExit: {se}")
+        if se.code != 255:
+            print(f"SystemExit: non-emergency")
+            raise
+        else:
+            print(f"SystemExit: emergency")
+            os._exit(255)

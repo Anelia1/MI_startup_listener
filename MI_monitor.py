@@ -20,84 +20,81 @@ import subprocess
 from threading import Lock, Thread
 import vosk
 vosk.SetLogLevel(-1)
-from Icon_manager import IconManager
-
-icon_manager = IconManager()
-
-def check_paths(*paths):
-    """
-    Adapted for multipath checks
-    """
-    for path in paths:
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"[MI_Monitor] Path {path} was not found")
-
-VOSK_MODEL_NAME = "vosk_english"
-VOSK_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "model", VOSK_MODEL_NAME))
-
-
-MI_APP_NAME = "MI3-FacialNavigation-3.04" # app name
-MI_EXE = MI_APP_NAME + ".exe" # executable name
-MI_FOLDER = "UCL MI3 Facial Navigation" # folder name of executable
-
-# By default we are assuming MI and MIMonitor are in the same directory since they will be installed 
-# via the same installer software with default locations (if the user hasn't changed it).
-# TODO: This class's _MI_process_info() method and various more in tests dir allow us
-# to grab plenty of system information (extept 'status' which is apparently a problem)
-# including selecting running processes by name and returning it ExecutablePath. 
-# This has not yet been handled, because it it heavily dependent on the circumstances in which
-# the app will be used. Currently MIMonitor assumes that there will be only one MI app running on 
-# the machine and closes all instances of it if more than one.
-
-MI_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", MI_FOLDER)) # expected path
-MI_EXE_PATH = os.path.join(MI_FOLDER_PATH, MI_EXE)
-
-check_paths(VOSK_PATH, MI_FOLDER_PATH, MI_EXE_PATH)
-
-
-
-
-ACCEPTABLE_START_PHRASES = ['start hand', 'start face', 'start motion'] # easier to adjust from here
-ACCEPTABLE_STOP_PHRASES = ['stop hand', 'stop face', 'stop motion']
-
-LIST_MI_NAME_STARTS_WITH = ['UCL-MI3', 'MI3']
+from icon_manager import IconManager
+from config import Config
 
 
 lock = Lock()
 
+
 class MIMonitor:
-    """
-    Singleton class for MI_Monitor
-    """
+    """ Class representing the core of MI_Monitor app """
     _is_running = False
+    _config = Config()
+    _icon_manager = IconManager()
+    # Vosk Speech Recognition
     _queue = queue.Queue()
     _device_info = sd.query_devices(kind='input')  # All available devices
     _samplerate = int(_device_info['default_samplerate'])  # Selected device info
-    _model = vosk.Model(VOSK_PATH)
-    _recogniser = vosk.KaldiRecognizer(_model, _samplerate)  # Recogniser (Kaldi function which does the actual speech-to-text conversion)
+    _model = vosk.Model(_config.get_vosk_path())
+    _recogniser = vosk.KaldiRecognizer(_model, _samplerate)
     _current_phrase = ""  # Current transcribed text
-    _report = f"MI closed because of: "
-    _process_name = "MI_app"
+    # MI app
+    _mi_exe = _config.get_mi_exe()
+    _mi_folder = _config.get_mi_folder()
+    _mi_exe_path = _config.get_mi_exe_path()
+    _bat_exit = _config.get_bat_path() # /im
+    _bat_forced_exit = _config.get_bat_path("forced") # /f
+    _start_phrases = _config.get_trigger_phrases("start")
+    _stop_close_phrases = _config.get_trigger_phrases("stop or close")
+
 
 
 
     @classmethod
     def start(cls) -> None:
-        cls._is_running = True
-
-
-        cls.ris =  sd.RawInputStream(samplerate=cls._samplerate, blocksize=8000,
-                                        device=None, dtype='int16', channels=1, 
-                                        callback=cls._callback)
-
+        if not cls.is_active():
+            cls._is_running = True
+        cls.start_audio_recording(cls)
+        # start background thread
         thread_background_checks = Thread(target=cls.background_checks, 
-                                        daemon = True, 
-                                        name="MIMonitor MainTread helper")
-
-        cls.ris.start()
+                                daemon = True, 
+                                name="MIMonitor MainTread helper")
         thread_background_checks.start()
-        
-        cls.run(cls.ris)
+
+
+    def start_audio_recording(cls):
+        """
+        Provides access to setting up the 
+        recorder from methods in the class.
+        Used for control - start 
+        speaker recognition audio stream
+        """
+        try: 
+            cls.ris =  sd.RawInputStream(samplerate=cls._samplerate, blocksize=8000,
+                                        device=None, dtype='int16', 
+                                        channels=1, callback=cls._callback)
+        except Exception as e:
+            print(e)
+            raise
+        else:
+            cls._recogniser.Reset()
+            cls.ris.start()
+            print("KITA Audio Stream Started")
+
+
+    def stop_audio_recording(cls) -> None:
+        """
+        Stop/Pause audio stream
+        """
+        try:
+            cls.ris.stop()
+            cls.ris.close()
+        except Exception as e:
+            print(f"<KITA> Audio Stream could not be stopped: {e}")
+            raise
+        else:
+            print("KITA Audio Stream Stopped/Paused")
 
 
     @classmethod
@@ -121,7 +118,6 @@ class MIMonitor:
                     cls.do_on_start_phrase()
 
 
-
     @classmethod
     def get_state(cls) -> bool:
         """
@@ -131,7 +127,7 @@ class MIMonitor:
 
 
     @classmethod
-    def run(cls, recorder) -> None :
+    def run(cls) -> None:
         """
         Run consistently while the app is open
         """
@@ -139,10 +135,7 @@ class MIMonitor:
             # The Loop
             while cls.get_state():
                 cls._perform_action()
-
-            recorder.stop()
-            recorder.close()
-            cls._stop()
+            cls.stop_audio_recording()
             print("Vosk closed")
         except Exception as e:
             print("MIMonitor run() failed: ", e)
@@ -150,39 +143,32 @@ class MIMonitor:
 
     @classmethod
     def _perform_action(cls):
-
-        json_data = {}
         # Obtain recognised speaker's phrases
-        try:
-            json_data = cls._get_current_phrase_dict()
-        except Exception as e:
-            print(f"Exception {e} in _perform_action()")
-            #sys.exit()
+        json_data = cls._get_current_phrase_dict()
+        for key, value in json_data.items(): 
+            if key in ('partial', 'text'): 
+                cls._current_phrase = value
 
-        if json_data: 
-            for key, value in json_data.items(): 
-                if key in ('partial', 'text'): 
-                    cls._current_phrase = value
+        # If the speaker says a trigger phrase
+        if cls._current_phrase == "":
+            return
+        print("PHRASE: ", cls._current_phrase)
 
-            # If the speaker says a trigger phrase
-            if cls._current_phrase != "":
-                print("PHRASE: ", cls._current_phrase)
-                for ph in ACCEPTABLE_STOP_PHRASES:
-                    if ph in cls._current_phrase: 
-                        cls.do_on_stop_phrase()
-                        icon_manager.red_icon_set() # icon red
-                for ph in ACCEPTABLE_START_PHRASES:
-                    if ph in cls._current_phrase:
-                        cls.do_on_start_phrase()
-                        icon_manager.green_icon_set() # icon green
+        for ph in cls._stop_close_phrases:
+            if ph in cls._current_phrase: 
+                cls.do_on_stop_phrase()
+                cls._icon_manager.red_icon_set() # icon red
 
-                try:
-                    cls._current_phrase = "" # reset
-                    cls._recogniser.Reset()
-                    sys.stdin.flush()
-                    sys.stdout.flush()
-                except Exception as ex:
-                    print("Exception with json parsing or vosk", ex)
+        for ph in cls._start_phrases:
+            if ph in cls._current_phrase:
+                cls.do_on_start_phrase()
+                cls._icon_manager.green_icon_set() # icon green
+
+            cls._current_phrase = "" # reset
+            cls._recogniser.Reset()
+            sys.stdin.flush()
+            sys.stdout.flush()
+
 
 
     @classmethod
@@ -191,23 +177,19 @@ class MIMonitor:
         Get current phrase from vosk
         """
         json_data = {}
-
         audio = cls._queue.get()
-
         # Processes the wav (user speech) audio data; convert to text
         if cls._recogniser.AcceptWaveform(audio): 
             # Get complete result
             # Vosk returns a json object by default {"Text", "user speech goes here"} 
-            # TODO: What does FinalResult do?
             json_data = json.loads(cls._recogniser.Result()) 
-
         # Partials can be enabled for faster responses, however, only single words
         # speech commands are accurate. In addition
         #else:
         #    # Get partial result
         #    json_data = json.loads(cls._recogniser.PartialResult())
-
         return json_data
+
 
     @classmethod
     def _callback(cls, indata, frames: int, time, status) -> None:
@@ -220,6 +202,7 @@ class MIMonitor:
             sys.stdout.flush()
         if cls._is_running:
             cls._queue.put(bytes(indata))
+
 
     @classmethod
     def _stop(cls) -> None:
@@ -251,58 +234,55 @@ class MIMonitor:
         except Exception as e:
             print("MITracker.do_on_start_phrase(): get process instance and kill MI", e)
             return
-
         ## Windows
         #if sys.platform == "win32":
         #    print("Starting MI now...")
         try: 
-            subprocess.Popen("start cmd /C" + MI_EXE, cwd = MI_FOLDER_PATH, shell=True)
+            subprocess.Popen("start cmd /C" + cls._mi_exe, cwd = cls._mi_folder, shell=True)
             print("STARTED MI")
         except Exception as e:
             print("MITracker.do_on_start_phrase(): subprocess issue", e)
         ## MacOS
         #elif sys.platform == "darwin":
         #    subprocess.Popen("./" + MI_EXE, cwd = MI_FOLDER, shell=True)
-
         MI_instance = cls._MI_process_info()
         if MI_instance:
-            print(f"{MI_EXE} app detected in process list") # MI app is confirmed running
+            print(f"{cls._mi_exe} app detected in process list") # MI app is confirmed running
         else: 
-            print(f"{MI_EXE} app NOT detected in process list, There was a problem with starting the app.")
+            print(f"{cls._mi_exe} app NOT detected in process list, There was a problem with starting the app.")
+
 
     @classmethod
     def do_on_stop_phrase(cls):
         """
         Kills MI instance
         """
-        try:
-            MI_instance = cls._MI_process_info()
-            if MI_instance:
-                print(MI_instance)
-                print("Killing MI now...")
-                subprocess.Popen("TASKKILL /IM " + cls._process_name) # taskkill attempt
-                time.sleep(1) # wait to exit
-                MI_instance = cls._MI_process_info() # check
-                if MI_instance: # if still running
-                    time.sleep(3) # wait to exit 
-                    MI_instance = cls._MI_process_info() # check
-                    print(f"Note killed yet {MI_EXE}")
-                    if MI_instance: # if still running
-                        subprocess.Popen("TASKKILL /F " + cls._process_name) # force termination
-                        return
-                #for p in psutil.process_iter():
-                #    if MI_EXE in str(p) and p.info(['pid']!=os.getpid()): # no suidides!
-                #        p.kill()
-                print(f"Killed {MI_EXE}")
-        except Exception as e:
-            print("MITracker.kill_MI(): general error: ", e)
+# TODO
+        MI_instance = cls._MI_process_info()
+        if MI_instance:
+            print(MI_instance)
+            print("Killing MI now...")
             try:
-                subprocess.Popen("TASKKILL /F " + cls._process_name)
-               
-            except Exception:
-                print(f" /F didn't work either'")
-                return
-            return
+                subprocess.Popen("TASKKILL /IM " + cls._mi_exe) # taskkill attempt
+                time.sleep(1) # wait to exit
+                print(f"Killed {cls._mi_exe} with /IM")
+            except:
+                try:
+                    subprocess.Popen("TASKKILL /F " + cls._mi_exe) # force termination
+                    time.sleep(1) # wait to exit
+                    print(f"Killed {cls._mi_exe} with /F")
+                except:
+                    try:
+                        os.open(cls._bat_exit)
+                        print(f"Killed {cls._mi_exe} with bat /IM")
+                    except:
+                        os.open(cls._bat_forced_exit)
+                        print(f"Killed {cls._mi_exe} with bat /F")
+            time.sleep(1)
+            MI_second_check = cls._MI_process_info()
+            if MI_second_check:
+                print("There was a problem and MI app could not be closed! ")
+                raise
 
 
     @classmethod
@@ -317,18 +297,19 @@ class MIMonitor:
             output = output.decode("utf-8") # binary
         except Exception as e:
             print("ERROR <MI_process_info> subprocess.check_output: ", e)
+            raise
         output_list = []
-        try:
-            for task in output.strip().split("\r\r\n\r\r\n"):
-                output_list.append(dict(e.split("=", 1) for e in task.strip().split("\r\r\n")))
-            for process in output_list:
-                for sname in LIST_MI_NAME_STARTS_WITH:
-                    if process['Name'].startswith(sname): # currently if the name starts with UCL or MI !!
-                        MI_instance.append(process)
-                        cls._process_name = process['Name']
-                        #print(process)
-        except Exception as ex:
-            print("ERROR <MI_process_info> strip(), append(), _process_name: ", ex)
+        for task in output.strip().split("\r\r\n\r\r\n"):
+            output_list.append(dict(e.split("=", 1) for e in task.strip().split("\r\r\n")))
+        for process in output_list:
+            if process == cls._mi_exe:
+                MI_instance.append(process)
+            # Option to search for ANY instance of MI, not just the one we are dealing with
+            #for sname in ['UCL-MI3', 'MI3']:
+            #    if process['Name'].startswith(sname): # currently if the name starts with UCL or MI !!
+            #        MI_instance.append(process)
+            #        cls._process_name = process['Name']
+                    #print(process)
         return MI_instance
 
 
@@ -342,46 +323,17 @@ class MIMonitor:
 
 
 
-
-if __name__ == '__main__':
-    try:
-        # MIM
-        m = MIMonitor
-        m.start()
-        print("MI Monitor Started")
-        
-        while m.get_state():
-            pass
-    except Exception as e:
-        try:
-            m._stop()
-            print(f"Stopped with Exception: {e}")
-        except Exception as ex:
-            print(f"Failed to stop with _stop() Exception: {ex}")
-            raise
-        raise
-    # Error Stop: Not Emergency
-    except SystemExit as se:
-        print("SystemExit: ", se)
-        if se.code != 255:
-            raise
-    # Error Stop: Emergency
-    else:
-        print("Emergency Exit")
-        os._exit(255)
-
-
 if __name__ == "__main__":
     try:
         # Start MI
         m = MIMonitor
         m.start()
-        print("[[[MIM Started]]]")
-        print("Say 'start motion/hand/hands/face' to run MI \nor 'close motion/hand/hands/face' to close MI")
+        print("[MIM Started]")
+        print("Say 'start motion/hand/hands/face' to run MI\n or 'close motion/hand/hands/face' to close MI")
         while m.is_active():
                 m.run()
         # Stop MIkop
-        print("[[[MIM Stopped]]]")
+        print("[MIM Stopped]")
     except Exception as e:
         try:
             m._stop()

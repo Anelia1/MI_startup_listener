@@ -73,6 +73,7 @@ class IconManager(Thread):
             
     def stop_icon(self):
         try:
+            self.icon.visible = False
             self.icon.stop()
         except Exception as e:
             print(e)

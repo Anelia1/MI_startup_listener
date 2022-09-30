@@ -1,0 +1,16 @@
+{
+    "current_mode": "facenav",
+    "vosk_model": "english",
+    "modes": {
+        "facenav": {
+            "mi_exe": "MI3-FacialNavigation-3.1.exe",
+            "mi_folder": "UCL MI3 Facial Navigation",
+            "trigger_phrases": ["motion", "face", "nose", "eyes", "head"]
+        },
+        "multitouch": {
+            "mi_exe": "MI3-Multitouch-3.1.exe",
+            "mi_folder": "UCL MI3 Multitouch",
+            "trigger_phrases": ["motion", "hand", "hands"]
+        }
+    }
+}

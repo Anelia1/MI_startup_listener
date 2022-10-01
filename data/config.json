@@ -1,6 +1,6 @@
 {
     "current_mode": "facenav",
-    "vosk_model": "english",
+    "model": "english",
     "modes": {
         "facenav": {
             "mi_exe": "MI3-FacialNavigation-3.1.exe",

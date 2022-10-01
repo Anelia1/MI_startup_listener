@@ -1,11 +1,15 @@
 '''
 Author: Anelia Gaydardzhieva
 Comments:
+A class to get information from the config.json
 Adapted from MotionInput
+#TODO: Could optimise and introduce improved data validations 
+with @dataclass-es or, even better, pydantic library.
 '''
 import os
 import json
-from typing import Optional
+from typing import Dict, List
+
 
 def check_paths(*paths):
     """
@@ -18,14 +22,6 @@ def check_paths(*paths):
 DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data"))
 
 
-
-# Bats
-BATS_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "bats"))
-EXIT_BAT = os.path.join(BATS_FOLDER_PATH, BAT_EXIT)
-FORCED_EXIT_BAT = os.path.join(BATS_FOLDER_PATH, BAT_FORCED_EXIT)
-
-
-
 class Config:
     """ Class to manage the JSON app configurations """
 
@@ -36,57 +32,60 @@ class Config:
         self.json_path = DATA_PATH + "\\" + json_name
         check_paths(self.json_path)
         self.data = self.set_config_data()
+        print("DATA: ", self.data)
         self.current_mode = self.data["current_mode"]
-        self.mode_data = self.get_mode_data()
+        self.vosk_model_name = self.data["model"]
+        print("CURRENT_MODE: ", self.current_mode)
+        self.mode_data = self.data["modes"][self.current_mode]
+        self.mi_exe = self.mode_data["mi_exe"]
 
 
-    def get_mi_folder(self):
+    def get_mi_exe(self) -> str:
         """
-        Returns only the exe name
+        Returns only MI exe name
         """
-        return self.mode_data[mi_folder]
-
-
-    def get_mi_exe(self):
-        """
-        Returns only the exe name
-        """
-        return self.mode_data[mi_exe]
+        return self.mi_exe
 
 
     def get_trigger_phrases(self, action : str) -> List[str]:
         """
         Returns all allowed start trigger phrases
         """
+        temp_phrases = self.mode_data["trigger_phrases"]
         if action == "start":
             trigger_phrases = ["start " + phrase for phrase in temp_phrases]
             return trigger_phrases # start
-        temp_phrases = self.mode_data["trigger_phrases"]
         temp_stop = ["stop " + phrase for phrase in temp_phrases]
         temp_close = ["close " + phrase for phrase in temp_phrases]
         trigger_phrases = temp_stop + temp_close
         return trigger_phrases # stop
 
 
-    def get_bat_path(self, Optional[forced] : str) -> str:
+    def get_bat_path(self, specification : str) -> str:
         """
         Returns the requested bat file path
         for the mode
         """
         prefix = "exit_"
-        if forced:
+        if specification == "forced":
             prefix = "forced_exit_"
         return prefix + self.current_mode + ".bat"
 
 
-    def get_mi_exe_path(self):
+    def get_bat_folder_path(self):
         """
-        Returns the executable to be managed path
         """
-        return os.path.join(DATA_PATH, "..", "..", self.mode_data["mi_exe_path"])
+        return os.path.join(DATA_PATH, "bats")
 
 
-    def set_config_data(self) -> Dict[str : Any]:
+    def get_mi_folder_path(self) -> str:
+        """
+        Returns MI exe folder path
+        """
+        return os.path.join(DATA_PATH, "..", "..", self.mode_data["mi_folder"])
+
+
+    def set_config_data(self) -> Dict[str, str]:
         """
         Reads the JSON data
         """
@@ -95,22 +94,15 @@ class Config:
         return data
 
 
-    def get_mode_data(self) -> Dict[str, Any]:
-        """
-        Grabs the current mode data
-        """
-        return self.data[self.current_mode]
-
-
-    def get_file_data(self) -> Dict[str, Any]:
+    def get_file_data(self) -> Dict[str, str]:
         """
         Grabs the whole dict from JSON file
         """
         return self.data
 
 
-    def get_vosk_path(self):
+    def get_vosk_path(self) -> str:
         """
         Vosk Path
         """
-        return os.path.join(DATA_PATH, 'models', self.get_data("vosk_model"))
+        return os.path.join(DATA_PATH, 'models', self.vosk_model_name)

@@ -14,12 +14,7 @@ nuitka_args = [
     '--standalone',
     '--assume-yes-for-downloads',
     '--include-data-dir=data=data',
-    '--include-data-dir=assets=assets',
-    '--windows-icon-from-ico=ucl_logo.ico',
-    '--include-data-files=info=info',
-    '--output-dir=Release',
-    '--nofollow-import-to=PySide6',
-    '--plugin-enable=pyside6'
+    '--output-dir=Release'
 ]
 
 
